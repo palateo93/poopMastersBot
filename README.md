@@ -1,0 +1,2 @@
+# poopMastersBot
+Poop counter bot
