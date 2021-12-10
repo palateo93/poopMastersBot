@@ -29,6 +29,11 @@ jobs:
     environment: production
     if: ${{ always() && contains(needs.*.result, 'success') && !(contains(needs.*.result, 'failure')) }}
 
+    env:
+      image_name: ${{ needs.initialize.outputs.image_name }}
+      channel: ${{ needs.initialize.outputs.channel }}
+      build_time: ${{ needs.initialize.outputs.build_time }}
+
     steps:
       -
         name: Checkout
