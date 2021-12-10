@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # pylint: disable=C0116,W0613
 # This program is dedicated to the public domain under the CC0 license.
 
@@ -18,8 +17,11 @@ Press Ctrl-C on the command line or send a signal to the process to stop the bot
 
 import logging
 
-from telegram import Update, ForceReply
+import prettytable as pt
+
+from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+
 
 # Enable logging
 logging.basicConfig(
@@ -33,11 +35,11 @@ def stupid(score: dict):
     print(score)
 
 # Define a few command handlers. These usually take the two arguments update and
+#!/usr/bin/env python
 # context.
 def start(score: dict, update: Update) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    print("user: ",user.first_name)
     if user.first_name in score:
       msg = 'You have already started the competition! Keep pooping!'
     else:
@@ -56,6 +58,17 @@ def updatePoopCount(score, update: Update) -> None:
       msg = "You haven't started the competition, start it with /start."
     update.message.reply_text(msg)
 
+def totalScore(score, update: Update) -> None:
+    table = pt.PrettyTable(['Name', 'Score'])
+    table.align['Name'] = 'l'
+    table.align['Score'] = 'r'
+    if not score:
+        update.message.reply_text('No one in competition. Start competing with /start.')
+    else:
+        for name, poops in score.items():
+            table.add_row([name, poops])
+        update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
+
 def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
@@ -67,6 +80,7 @@ def main() -> None:
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", lambda update, context: start(poopScore, update)))
     dispatcher.add_handler(CommandHandler("poop", lambda update, context: updatePoopCount(poopScore, update)))
+    dispatcher.add_handler(CommandHandler("score", lambda update, context: totalScore(poopScore, update)))
 
     # Start the Bot
     updater.start_polling()
