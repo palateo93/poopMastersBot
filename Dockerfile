@@ -1,5 +1,7 @@
 FROM python:3.9-slim-buster
 
+RUN useradd -ms /bin/bash  poop
+
 USER poop
 
 WORKDIR /app
