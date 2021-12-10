@@ -3,7 +3,7 @@
 # This program is dedicated to the public domain under the CC0 license.
 
 """
-Simple Bot to reply to Telegram messages.
+Simple Bot to count how much you poop :)
 
 First, a few handler functions are defined. Then, those functions are passed to
 the Dispatcher and registered at their respective places.
