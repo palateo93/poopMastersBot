@@ -63,7 +63,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:${{ env.build_tag }}
+          tags: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name.lowercase }}:${{ env.build_tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
