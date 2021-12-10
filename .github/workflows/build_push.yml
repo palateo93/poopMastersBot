@@ -9,9 +9,30 @@ env:
   IMAGE: ${{ github.repository }}
 
 jobs:
+  initialize:
+    steps:
+      - name: Set Global Variables
+        id: global_vars
+        run: |
+          echo "::set-output name=channel::${GITHUB_REF##*/}"
+          echo "::set-output name=build_time::$( date +%Y%m%d%H%M%S)"
+          echo "::set-output name=image_name::${GITHUB_REPOSITORY##*/}"
+    outputs:
+      channel: ${{ steps.global_vars.outputs.channel }}
+      build_time: ${{ steps.global_vars.outputs.build_time }}
+      image_name: ${{ steps.global_vars.outputs.image_name }}
+
   push_to_registry:
+    needs: [initialize]
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    if: ${{ always() && contains(needs.*.result, 'success') && !(contains(needs.*.result, 'failure')) }}
+    
+    env:
+      image_name: ${{ needs.initialize.outputs.image_name }}
+      channel: ${{ needs.initialize.outputs.channel }}
+      build_time: ${{ needs.initialize.outputs.build_time }}
+
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
@@ -22,6 +43,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
+      - name: Setup Build Tag
+        id: create_build_tag
+        run: |
+          echo "build_tag=${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "::set-output name=build_tag::${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
@@ -35,9 +62,12 @@ jobs:
         with:
           context: .
           push: true
-          # tags: ${{ steps.meta.outputs.tags }}
-          tags: docker.io/palateo93/poopmastersbot:${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          tags: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:${{ env.build_tag }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
 
 
 # jobs:
