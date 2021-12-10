@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "::set-output name=channel::${GITHUB_REF##*/}"
           echo "::set-output name=build_time::$( date +%Y%m%d%H%M%S)"
-          echo "::set-output name=image_name::${GITHUB_REPOSITORY##*/}"
+          echo "::set-output name=image_name::${GITHUB_REPOSITORY,,}"
     outputs:
       channel: ${{ steps.global_vars.outputs.channel }}
       build_time: ${{ steps.global_vars.outputs.build_time }}
