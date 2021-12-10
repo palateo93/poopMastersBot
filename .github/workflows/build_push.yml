@@ -22,52 +22,107 @@ jobs:
       build_time: ${{ steps.global_vars.outputs.build_time }}
       image_name: ${{ steps.global_vars.outputs.image_name }}
 
-  push_to_registry:
+  buildx:
     needs: [initialize]
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     environment: production
     if: ${{ always() && contains(needs.*.result, 'success') && !(contains(needs.*.result, 'failure')) }}
-    
-    env:
-      image_name: ${{ needs.initialize.outputs.image_name }}
-      channel: ${{ needs.initialize.outputs.channel }}
-      build_time: ${{ needs.initialize.outputs.build_time }}
 
     steps:
-      - name: Check out the repo
+      -
+        name: Checkout
         uses: actions/checkout@v2
-      
-      - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      -
+        name: Prepare
+        id: prepare
+        run: |
+          DOCKER_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}
+          DOCKER_PLATFORMS=linux/amd64,linux/arm/v7,linux/arm64
+          VERSION=${{ env.build_tag }}
+
+          TAGS="--tag ${DOCKER_IMAGE}:${VERSION} --tag ${DOCKER_IMAGE}:latest"
+
+          echo ::set-output name=docker_image::${DOCKER_IMAGE}
+          echo ::set-output name=version::${VERSION}
+          echo ::set-output name=buildx_args::--platform ${DOCKER_PLATFORMS} \
+            --build-arg VERSION=${VERSION} \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            --build-arg VCS_REF=${GITHUB_SHA::8} \
+            ${TAGS} --file ./test/Dockerfile ./test
+      -
+        name: Set up Docker Buildx
+        uses: crazy-max/ghaction-docker-buildx@v3
+      -
+        name: Docker Buildx (build)
+        run: |
+          docker buildx build --output "type=image,push=false" ${{ steps.prepare.outputs.buildx_args }}
+      -
+        name: Login to DockerHub
+        if: success()
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Setup Build Tag
-        id: create_build_tag
+      -
+        name: Docker Buildx (push)
+        if: success()
         run: |
-          echo "build_tag=${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}" >> $GITHUB_ENV
-          echo "::set-output name=build_tag::${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}"
+          docker buildx build --output "type=image,push=true" ${{ steps.prepare.outputs.buildx_args }}
+      # -
+      #   name: Inspect image
+      #   if: always()
+      #   run: |
+      #     docker buildx imagetools inspect ${{ steps.prepare.outputs.docker_image }}:${{ steps.prepare.outputs.version }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          images: palateo93/${{ env.IMAGE }}
-          tags: |
-            type=sha
+
+
+  # push_to_registry:
+  #   needs: [initialize]
+  #   name: Push Docker image to Docker Hub
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   if: ${{ always() && contains(needs.*.result, 'success') && !(contains(needs.*.result, 'failure')) }}
+    
+  #   env:
+  #     image_name: ${{ needs.initialize.outputs.image_name }}
+  #     channel: ${{ needs.initialize.outputs.channel }}
+  #     build_time: ${{ needs.initialize.outputs.build_time }}
+
+  #   steps:
+  #     - name: Check out the repo
+  #       uses: actions/checkout@v2
       
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: .
-          push: true
-          tags: |
-            docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:${{ env.build_tag }}
-            docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
-            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+      
+  #     - name: Setup Build Tag
+  #       id: create_build_tag
+  #       run: |
+  #         echo "build_tag=${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}" >> $GITHUB_ENV
+  #         echo "::set-output name=build_tag::${{ env.build_time }}-${{ env.channel }}-${{ github.run_number }}"
+
+  #     - name: Extract metadata (tags, labels) for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+  #       with:
+  #         images: palateo93/${{ env.IMAGE }}
+  #         tags: |
+  #           type=sha
+      
+  #     - name: Build and push Docker image
+  #       uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: |
+  #           docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:${{ env.build_tag }}
+  #           docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.image_name }}:latest
+  #         labels: ${{ steps.meta.outputs.labels }}
+  #         build-args: |
+  #           BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+  #           VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+  #           REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
