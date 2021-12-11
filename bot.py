@@ -59,20 +59,20 @@ def updatePoopCount(score, update: Update) -> None:
     update.message.reply_text(msg)
 
 def totalScore(score, update: Update) -> None:
-    table = pt.PrettyTable(['Name', 'Score'])
-    table.align['Name'] = 'l'
-    table.align['Score'] = 'r'
     if not score:
         update.message.reply_text('No one in competition. Start competing with /start.')
     else:
-        for name, poops in score.items():
+        table = pt.PrettyTable(['Name', 'Score'])
+        table.align['Name'] = 'l'
+        table.align['Score'] = 'r'
+        for name, poops in sorted(score.items(), key=lambda pair:pair[1], reverse=True):
             table.add_row([name, poops])
         update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
 
 def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("5075306465:AAHHZ6w-XfPUJ4vKHSAqRKSC8fc7UI5KKSo")
+    updater = Updater("_TELEGRAM_TOKEN_")
         
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
