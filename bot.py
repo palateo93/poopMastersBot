@@ -40,39 +40,42 @@ def stupid(score: dict):
 def start(score: dict, update: Update) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    if user.first_name in score:
+    if user.id in score:
       msg = 'You have already started the competition! Keep pooping!'
     else:
-      score[user.first_name] = 0
+      score[user.id] = {"count": 0, "name": f'{user.first_name}' }
       msg = f'{user.first_name} started the poop competition, good luck!\n\n Your current score is: 0\n\n Use /poop to start counting how many times you poop!'
     update.message.reply_text(msg)
+    logger.info(f'{user.first_name} has started the competition.')
 
 
 def updatePoopCount(score, update: Update) -> None:
     """Update poop counter"""
     user = update.effective_user
-    if user.first_name in score:
-      score[user.first_name] += 1
-      msg = f"{user.first_name}'s score: {score[user.first_name]}"
+    if user.id in score:
+      score[user.id]["count"] += 1
+      msg = f'{user.first_name}\'s score: {str(score[user.id]["count"])}'
+      logger.info(f'{user.id} ({user.first_name}) poop count: {str(score[user.id]["count"])}')
     else:
       msg = "You haven't started the competition, start it with /start."
     update.message.reply_text(msg)
 
+
 def totalScore(score, update: Update) -> None:
-    table = pt.PrettyTable(['Name', 'Score'])
-    table.align['Name'] = 'l'
-    table.align['Score'] = 'r'
     if not score:
         update.message.reply_text('No one in competition. Start competing with /start.')
     else:
-        for name, poops in score.items():
-            table.add_row([name, poops])
+        table = pt.PrettyTable(['Name', 'Score'])
+        table.align['Name'] = 'l'
+        table.align['Score'] = 'r'
+        for id, v in sorted(score.items(), key=lambda pair:pair[1], reverse=True):
+            table.add_row([v['name'], v['count']])
         update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
 
 def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("5075306465:AAHHZ6w-XfPUJ4vKHSAqRKSC8fc7UI5KKSo")
+    updater = Updater("_TELEGRAM_TOKEN_")
         
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
