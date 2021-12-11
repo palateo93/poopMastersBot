@@ -75,7 +75,7 @@ def totalScore(score, update: Update) -> None:
 def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("5030369232:AAG1utkTMGzl2nom3NoPbEM3nQi4gf9nr1M")
+    updater = Updater("_TELEGRAM_TOKEN_")
         
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
