@@ -15,13 +15,13 @@ Usage:
 Press Ctrl-C on the command line or send a signal to the process to stop the bot.
 """
 
+import json
+from json.decoder import JSONDecodeError
 import logging
-
 import prettytable as pt
-
 from telegram import Update, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-
+from json import load, dump
 
 # Enable logging
 logging.basicConfig(
@@ -29,33 +29,52 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-poopScore = {}
+scoreJsonFile = "/tmp/score.json"
 
-def stupid(score: dict):
-    print(score)
+def loadJson(filename):
+    try:
+        with open(filename) as f:
+            poopScore = load(f)
+            return poopScore
+    except IOError:
+        logger.error('Import scores: file not found. Unable to load the scores.')
+        poopScore = {}
+        return poopScore
+    except JSONDecodeError:
+        logger.error('Import scores: source file is not a JSON. Unable to load the scores.')
+        poopScore = {}
+        return poopScore
+
+def updateJson(filename, payload):
+    with open(filename, "w") as f:
+        json.dump(payload, f)
+
 
 # Define a few command handlers. These usually take the two arguments update and
-#!/usr/bin/env python
 # context.
+#!/usr/bin/env python
 def start(score: dict, update: Update) -> None:
     """Send a message when the command /start is issued."""
     user = update.effective_user
-    if user.id in score:
+    user_id = str(user.id)
+    if user_id in score:
       msg = 'You have already started the competition! Keep pooping!'
     else:
-      score[user.id] = {"count": 0, "name": f'{user.first_name}' }
+      score[user_id] = {"count": 0, "name": f'{user.first_name}' }
       msg = f'{user.first_name} started the poop competition, good luck!\n\n Your current score is: 0\n\n Use /poop to start counting how many times you poop!'
+      logger.info(f'{user_id} ({user.first_name}) has started the competition.')
     update.message.reply_text(msg)
-    logger.info(f'{user.first_name} has started the competition.')
 
 
 def updatePoopCount(score, update: Update) -> None:
     """Update poop counter"""
     user = update.effective_user
-    if user.id in score:
-      score[user.id]["count"] += 1
-      msg = f'{user.first_name}\'s score: {str(score[user.id]["count"])}'
-      logger.info(f'{user.id} ({user.first_name}) poop count: {str(score[user.id]["count"])}')
+    user_id = str(user.id)
+    if user_id in score:
+      score[user_id]["count"] += 1
+      updateJson(scoreJsonFile, score)
+      msg = f'{user.first_name}\'s score: {str(score[user_id]["count"])}'
+      logger.info(f'{user_id} ({user.first_name}) poop count: {str(score[user_id]["count"])}')
     else:
       msg = "You haven't started the competition, start it with /start."
     update.message.reply_text(msg)
@@ -76,9 +95,12 @@ def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
     updater = Updater("_TELEGRAM_TOKEN_")
-        
+    
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
+    
+    # Load scores from file
+    poopScore = loadJson(scoreJsonFile)
 
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", lambda update, context: start(poopScore, update)))
