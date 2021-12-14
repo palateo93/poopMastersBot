@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-scoreJsonFile = "/tmp/score.json"
+scoreJsonFile = "/app/data/score.json"
 
 def loadJson(filename):
     try:
