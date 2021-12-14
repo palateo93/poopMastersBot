@@ -87,7 +87,7 @@ def totalScore(score, update: Update) -> None:
         table = pt.PrettyTable(['Name', 'Score'])
         table.align['Name'] = 'l'
         table.align['Score'] = 'r'
-        for id, v in sorted(score.items(), key=lambda pair:pair[1], reverse=True):
+        for id, v in sorted(score.items(), key=lambda pair:pair[1]['count'], reverse=True):
             table.add_row([v['name'], v['count']])
         update.message.reply_text(f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
 
