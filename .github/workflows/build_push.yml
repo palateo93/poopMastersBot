@@ -51,7 +51,6 @@ jobs:
           DOCKER_PLATFORMS=linux/amd64,linux/arm/v7,linux/arm64
           VERSION=${{ env.build_tag }}
           TAGS="--tag ${DOCKER_IMAGE}:${VERSION} --tag ${DOCKER_IMAGE}:latest"
-          sed -i 's/_TELEGRAM_TOKEN_/${{ secrets.TELEGRAM_TOKEN }}/g' ./bot.py
           echo ::set-output name=docker_image::${DOCKER_IMAGE}
           echo ::set-output name=version::${VERSION}
           echo ::set-output name=buildx_args::--platform ${DOCKER_PLATFORMS} \
