@@ -15,6 +15,7 @@ Usage:
 Press Ctrl-C on the command line or send a signal to the process to stop the bot.
 """
 
+import os
 import json
 from json.decoder import JSONDecodeError
 import logging
@@ -94,7 +95,7 @@ def totalScore(score, update: Update) -> None:
 def main() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("_TELEGRAM_TOKEN_")
+    updater = Updater(os.getenv('TELEGRAM_TOKEN'))
     
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher

@@ -2,12 +2,16 @@
 
 #### This bot is used for a very important purpose: to see which person is pooping the most :) 
 ---
-Prerequisites to run it manually:
+## How to run the application in your local environment:
 * `pip3 intsall python-telegram-bot`
 * `pip3 intsall prettytable`
+* `export TELEGRAF_TOKEN=xxxxx`
+* `python3 bot.py`
 
+## How to run the application in Docker:
+* `docker run -d -e TELEGRAF_TOKEN=${token} ${image}:${tag}` 
 
-Available commands:
+## Available commands:
 * `/start` : Start the poop competition
 * `/poop` : Increase your poop count
 * `/score` : Show the ranking
